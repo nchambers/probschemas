@@ -1,0 +1,54 @@
+
+Prerequisites
+-------------
+
+This code relies on the WordNet dictionaries. The dictionary files can be
+downloaded from:
+
+    http://wordnetcode.princeton.edu/wn3.1.dict.tar.gz
+
+You also need a jwnl_file_properties.xml file that points to the location of
+your downloaded dictionary. The dictionary and this file can be stored anywhere
+on your drive. The code looks for an environment variable JWNL that should have the path to the xml file.
+
+
+How to Run the Code
+-------------
+
+PRE-PROCESS YOUR TEXT
+./runallparser.sh -output <dir> -input <dir> -type muc|text
+
+CAT MULTIPLE FILES INTO ONE (if necessary)
+cat *.parse > all/parse.out
+cat *.ner > all/ner.out
+cat *.deps > all/deps.out
+cat *.events > all/deps.out
+
+RUN THE LEARNER
+./runlearner.sh -topics 10 -train <dir-from-allparser>
+
+RUN INFERENCE TO LABEL DOCS
+./runlearner.sh -isamp -model sampler-sailout-ir0-plates0-topics10-jp0-jt0.model -test <dir-from-allparser>
+
+
+Core Methods in Learner.java
+-------------
+
+learn()
+- Trains on train data and saves model to disk.
+
+inferUsingSampledData()
+- Really the evaluate method. Use the sampled labels as true labels.
+
+learnAndInferAvg()
+- Random subsets of data, repeats tests and averages results.
+- Uses inferUsingSampledData(), not runInference()
+
+runInference()
+- Old evaluate method. Uses the learned sampling model (probably saved to disk) and selects most probable entity roles...but not by sampling.
+
+
+TODO Items
+-------------
+
+**** Need to make text-only data to experiment with! ****
