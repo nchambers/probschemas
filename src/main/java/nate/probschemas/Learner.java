@@ -837,10 +837,12 @@ public class Learner {
     sampler.printWordDistributionsPerTopic();
     if( _modelOutName != null )
       sampler.toFile(_modelOutDir + File.separator + _modelOutName);
-    else
+    else {
+      System.out.println(_trainDataDir + " stripped to " + Directory.lastSubdirectory(_trainDataDir));
       sampler.toFile(_modelOutDir + File.separator + "sampler-" + Directory.lastSubdirectory(_trainDataDir) + 
       		(_numTrainingDocs == Integer.MAX_VALUE ? "" : _numTrainingDocs) + 
           "-ir" + _numIRDocs + "-plates" + _numTemplates + "-topics" + _numTopics + "-jp" + _numJunkTemplates + "-jt" + _numJunkTopics + ".model");
+    }
     return sampler;
   }
 

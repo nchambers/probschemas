@@ -47,7 +47,7 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
   public List<String> docNames;
 
   public boolean thetasInDoc = true;
-  public boolean includeVerbs = false;
+  public boolean includeVerbs = true;
   public boolean includeEntityFeatures = true;
   public boolean constrainInverseDeps = true;
   int maxEntitiesPerTopic = 2; // (constrained sampler mode) each document can only map this many entities to a single role
@@ -81,6 +81,10 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
   double depSmoothing = 0.1;
   double verbSmoothing = 0.1;
   double featSmoothing = 1.0;
+//  double wSmoothing = 3.0;
+//  double depSmoothing = 0.1;
+//  double verbSmoothing = 0.1;
+//  double featSmoothing = 1.0;
   private final double topicSmoothingTimesNumTopics;
   private double wSmoothingTimesNumW;
   private double depSmoothingTimesNumDeps;
@@ -484,6 +488,8 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
   				featCountsBySlot[newZ].incrementCount(feat);
   		}
   	}
+  	
+//    System.out.println("RELABELED doci=" + doci + " entityi=" + entityi);
   }
 
   /**
@@ -516,7 +522,7 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
         break;      
       if( iter % 15 == 14 ) {
       	numEntitiesInAllDocs++;
-      	if( !checkVerbDistributions() || !checkTopicDistributions() )
+      	if( !checkVerbDistributions() || !checkTopicDistributions() || !checkFeatCountsBySlot() )
       		System.exit(1);
       	numEntitiesInAllDocs--;
       }
@@ -606,10 +612,18 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
           */
         }
       }
+      
+      if( iter % 15 == 0) {
+        printWordDistributionsPerTopic();
+      }
     }
 
     numEntitiesInAllDocs++;
     //    System.out.println("Checking data structures result = " + checkDataStructures());
+
+    // Final print.
+    System.out.println("Final distribution that we stopped on.");
+    printWordDistributionsPerTopic();
     
     // Load the best performer.
     System.out.println("Loading the best iteration from step " + _bestModelInstance.samplingStep + "...likelihood=" + _bestModelInstance.likelihood);
@@ -666,11 +680,11 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
    */
   public void loadBestModelInstance(EntityModelInstance best) {
   	System.out.println("Reloading best sampled instance...");
-//    System.out.println("BEFORE LOADING BEST MODEL");
-//    printWordDistributionsPerTopic();
-    
-    for( int xx = 0; xx < best.zs.length; xx++ )
+
+  	for( int xx = 0; xx < best.zs.length; xx++ )
       this.zs[xx] = Arrays.copyOf(best.zs[xx], best.zs[xx].length);
+    
+    this.topicCounts = Arrays.copyOf(best.topicCounts, best.topicCounts.length);
     
     for( int xx = 0; xx < best.topicCountsByDoc.length; xx++ )
       this.topicCountsByDoc[xx] = Arrays.copyOf(best.topicCountsByDoc[xx], best.topicCountsByDoc[xx].length);
@@ -679,9 +693,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     this.verbCountsBySlot = best.cloneCounter(best.verbCountsBySlot);
     this.depCountsBySlot  = best.cloneCounter(best.depCountsBySlot);
     this.featCountsBySlot = best.cloneCounter(best.featCountsBySlot);
-    
-//    System.out.println("\n\nAFTER LOADING BEST MODEL");
-//    printWordDistributionsPerTopic();
   }
 
   private boolean isJunkTopic(int tt) {
@@ -832,7 +843,7 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
    * Analysis and Debugging
    * @param wordIndex The index of words to integer IDs.
    */
-  public List<double[]> getWordDistributionsPerTopic(ClassicCounter<Integer>[] countsBySlot, double smoothing, double smoothingTimesNum, Index<String> wordIndex) {
+  private List<double[]> getWordDistributionsPerTopic(ClassicCounter<Integer>[] countsBySlot, double smoothing, double smoothingTimesNum, Index<String> wordIndex) {
     //    System.out.println("Calling getWordDistPerTopic...wordIndex size " + wordIndex.size());
     List<double[]> dists = new ArrayList<double[]>(numTopics);
     for( int topic = 0; topic < numTopics; topic++ ) {
@@ -848,17 +859,19 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     return dists;
   }
 
-  public List<double[]> getFeatDistributionsPerTopic() {
+  private List<double[]> getFeatDistributionsPerTopic() {
     List<double[]> dists = new ArrayList<double[]>(numTopics);
     for( int topic = 0; topic < numTopics; topic++ ) {
       double[] dist = new double[numFeats];
       dists.add(dist);
 
+      System.out.println("Topic: " + topic + " feat counts = " + featCountsBySlot[topic] + " from topicCounts[topic]=" + topicCounts[topic]);
       for( int ii = 0; ii < numFeats; ii++ ) {
         //        double probOfFeatGivenTopic = (featCountsBySlot[topic].getCount(ii) + featSmoothing) / 
         //        (featCountsBySlot[topic].totalCount() + featSmoothingTimesNumFeats);
 
-        double probOfFeatGivenTopic = (featCountsBySlot[topic].getCount(ii) + featSmoothing) / (topicCounts[topic] + featSmoothingTimesNumFeats);;
+//        double probOfFeatGivenTopic = (featCountsBySlot[topic].getCount(ii) + featSmoothing) / (topicCounts[topic] + featSmoothingTimesNumFeats);;
+        double probOfFeatGivenTopic = featCountsBySlot[topic].getCount(ii) / topicCounts[topic];
 
         //        System.out.println("P(feat=" + ii + "|slot=" + topic + ") \t= " + probOfFeatGivenTopic);
         dist[ii] = probOfFeatGivenTopic;
@@ -1146,6 +1159,23 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     if( dep.startsWith("dobj") )
       return "nsubj--" + dep.substring(6);
     return null;
+  }
+
+  private boolean checkFeatCountsBySlot() {
+    for( int slot = 0; slot < featCountsBySlot.length; slot++ ) {
+      Counter<Integer> counter = featCountsBySlot[slot];
+      double max = 0.0;
+      for( int feat = 0; feat < numFeats; feat++ ) {
+        double count = counter.getCount(feat);
+        if( count > max ) max = count;
+      }
+      if( max > topicCounts[slot] ) {
+        System.out.println("ERROR: " + max + " feat counts in topic " + slot + " when topicCounts[slot]=" + topicCounts[slot]);
+//        printWordDistributionsPerTopic();
+        return false;
+      }
+    }
+    return true;
   }
 
   private boolean checkTopicDistributions() {

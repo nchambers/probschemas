@@ -67,7 +67,7 @@ public class AllParser {
 
   public AllParser(String[] args) {
     if( args.length < 2 ) {
-      System.out.println("DirectoryParser [-output <dir>] -input giga|muc <text-directory>");
+      System.out.println("DirectoryParser [-output <dir>] -type giga|muc -input <text-directory>");
       System.exit(-1);
     }
     handleParameters(args);
@@ -84,10 +84,18 @@ public class AllParser {
     if( params.hasFlag("-output") ) {
       _outputDir = params.get("-output");
     }
-    if( params.hasFlag("-input") ) {
-      _docType = docTypeToInt(params.get("-input"));
+    if( params.hasFlag("-type") ) {
+      _docType = docTypeToInt(params.get("-type"));
     }
-    _dataPath = args[args.length - 1];
+    if( params.hasFlag("-input") ) {
+      _dataPath = params.get("-input");
+    }
+
+    // Sanity check for input path.
+    if( _dataPath == null || _dataPath.length() == 0 ) {
+      System.err.println("ERROR: no input path given.");
+      System.exit(1);      
+    }
 
     System.out.println("Input type: " + _docType);
     System.out.println("Input path: " + _dataPath);
