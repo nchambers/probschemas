@@ -3,7 +3,6 @@ package nate.probschemas;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -16,7 +15,6 @@ import nate.muc.KeyReader;
 import nate.ProcessedData;
 import nate.util.Directory;
 import nate.util.HandleParameters;
-import nate.util.SortableScore;
 import nate.util.Triple;
 import nate.util.Util;
 import nate.util.TreeOperator;
@@ -31,7 +29,9 @@ import nate.util.TreeOperator;
  * 
  * LEARNING
  * -train   : The directory containing text processed files.
- * -topics  : The number of slots in the template.
+ * -plates  : The number of templates to learn.
+ * -jplates : The number of junk templates to learn.
+ * -topics  : The number of slots across all templates. (e.g., if 5 templates, 20 topics is 4 per template)
  * -jtopics : The number of junk slots to include in sampling.
  * -dtheta  : Use thetas per document, not as a single global distribution.
  * -n       : The number of Gibbs sampling iterations.
