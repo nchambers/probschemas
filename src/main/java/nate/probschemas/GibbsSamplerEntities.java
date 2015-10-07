@@ -493,9 +493,8 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
         }
       }
       
-      if( iter % 15 == 0) {
-        printWordDistributionsPerTopic();
-      }
+//      if( iter % 15 == 0)
+//        printWordDistributionsPerTopic();
     }
 
     numEntitiesInAllDocs++;

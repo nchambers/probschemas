@@ -71,7 +71,7 @@ public class Learner {
   boolean _learnAndInfer     = false;
   boolean _includeEntFeats	 = true;
   boolean _constrainInverseDeps   = true;
-  boolean _thetasInDoc       = false;
+  boolean _thetasInDoc       = true;
   int _numIRDocs = 0;
   int _numTrainingDocs = Integer.MAX_VALUE;
   int _minDepCounts = 2;
