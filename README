@@ -22,7 +22,7 @@ CAT MULTIPLE FILES INTO ONE (if necessary)
 cat *.parse > all/parse.out
 cat *.ner > all/ner.out
 cat *.deps > all/deps.out
-cat *.events > all/deps.out
+cat *.events > all/events.out
 
 RUN THE LEARNER
 ./runlearner.sh -topics 10 -train <dir-from-allparser>
