@@ -42,7 +42,7 @@ import edu.stanford.nlp.util.CoreMap;
  * Part of a file name of a file to start parsing again.
  * Usually it was interrupted and we need to continue.
  *
- * -input GIGA|ENVIRO
+ * -input giga|muc|text
  * The type of text we are processing, Gigaword or Environment.
  */
 public class AllParser {
@@ -56,7 +56,8 @@ public class AllParser {
   // One file name to continue parsing.
   // Usually the previous run was interrupted.
   String _continueFile = null; 
-
+  boolean debug = false;
+  
   public static final int GIGAWORD = 0;
   public static final int ENVIRO = 1;
   public static final int MUC = 2;
@@ -156,7 +157,7 @@ public class AllParser {
     // Replace underscores (gigaword has underscores in many places commas should be)
     if( allsents.contains(" _ ") ) allsents = allsents.replaceAll(" _ ", " , ");
 
-    System.out.println("NEW: sentences = " + allsents);
+    if( debug ) System.out.println("NEW: sentences = " + allsents);
     Annotation document = new Annotation(allsents);
     
     try {
@@ -171,13 +172,13 @@ public class AllParser {
     List<Tree> trees = new ArrayList<Tree>();
     List<CoreMap> sentences = document.get(CoreAnnotations.SentencesAnnotation.class);
     for( CoreMap sentence: sentences ) {
-      System.out.println("sid = " + sid);
-      System.out.println("sent = " + sentence);
+      if( debug ) System.out.println("sid = " + sid);
+      if( debug ) System.out.println("sent = " + sentence);
 
       // PARSE TREE
       Tree tree = sentence.get(TreeAnnotation.class);
       trees.add(tree);
-      System.out.println("tree = " + tree);
+      if( debug ) System.out.println("tree = " + tree);
       // Build a StringWriter, print the tree to it, then save the string
       StringWriter treeStrWriter = new StringWriter();
       TreePrint tp = new TreePrint("penn");
@@ -247,7 +248,7 @@ public class AllParser {
     
     // COREFERENCE
     Map<Integer, CorefChain> graph = document.get(CorefChainAnnotation.class);
-    System.out.println("coref = " + graph);
+    if( debug ) System.out.println("coref = " + graph);
 
     // Analyze the parses with entities
     //List<EntityMention> mentions = stanfordCoref.processParses( trees );
@@ -262,7 +263,7 @@ public class AllParser {
       }
     }
     // Put the entities into the doc, and save the mentions that are arguments of verbs.
-    System.out.println("MYMENTIONS = " + mymentions);
+    if( debug ) System.out.println("MYMENTIONS = " + mymentions);
     mapCorefToTrees(corefdoc, trees, mymentions);
   }
 
@@ -486,10 +487,10 @@ public class AllParser {
             // Read the documents in the text file.               else if( _docType == MUC )
             //              giga = new MUCHandler(_dataPath + File.separator + file);
             Vector<String> sentences = giga.nextStory();
-            System.out.println("Allparser: got " + sentences);
+            if( debug ) System.out.println("Allparser: got " + sentences);
             int storyID = 0;
             while( sentences != null && sentences.size() > 0 ) {
-              System.out.println("in the while loop for " + file);
+              //System.out.println("in the while loop for " + file);
               numDocs++;
               System.out.println(numDocs + ": (" + giga.currentDoc() + "/" + giga.numDocs() + ") " + giga.currentStory());
               if( numDocs % 100 == 0 ) Util.reportMemory();
@@ -541,6 +542,7 @@ public class AllParser {
         if( file.contains("txt") ) return true;
       }
     }
+	System.out.println("AllParser is skipping " + file + " due to unrecognized file name.");
     return false;
   }
 
