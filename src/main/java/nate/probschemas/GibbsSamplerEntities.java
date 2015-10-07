@@ -81,10 +81,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
   double depSmoothing = 0.1;
   double verbSmoothing = 0.1;
   double featSmoothing = 1.0;
-//  double wSmoothing = 3.0;
-//  double depSmoothing = 0.1;
-//  double verbSmoothing = 0.1;
-//  double featSmoothing = 1.0;
   private final double topicSmoothingTimesNumTopics;
   private double wSmoothingTimesNumW;
   private double depSmoothingTimesNumDeps;
@@ -304,41 +300,14 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     double[] probs = new double[numTopics];
     for (int topic = 0; topic < numTopics; topic++) {
 
+      // Probability of topic in this specific document.
       double probOfTopic = (thetasInDoc ? probOfTopicGivenDoc(topic, doc) : probOfTopic(topic));
+
       // This assumes all mentions use the same core entity token.
       double probOfWGivenTopic = (wCountsBySlot[topic].getCount(mentionTokens[0]) + wSmoothing) / (wCountsBySlot[topic].totalCount() + wSmoothingTimesNumW);
       probs[topic] = Math.log(probOfTopic * probOfWGivenTopic);
 
-      //      if( topic == 0 ) {
-      //      	double sum = 0.0; int countSum = 0; int times = 0;
-      //      	for( int ii = 0; ii < wordIndex.size(); ii++ ) {	
-      //      		double count = wCountsBySlot[topic].getCount(ii);
-      //      		double totalCount = (double)wCountsBySlot[topic].totalCount();
-      //      		double probW = (count + wSmoothing) / (totalCount + wSmoothingTimesNumW);
-      ////      		System.out.printf("  %.2f + %.2f / %.2f + %.2f\n", count, depSmoothing, totalCount, depSmoothingTimesNumDeps);
-      //      		sum += probW;
-      //      		countSum += count;
-      //      		times++;
-      //      		if( count > 0.0 || probW > 0.0 ) 
-      //      			System.out.printf("%d.\td=%s\tcount=%d/%d\tprob(d|topic)=%.5f\twSmoothing=%.2f\twSmoothTimesNumW=%.2f\n", ii, wordIndex.get(ii), (int)count, (int)totalCount, probW, wSmoothing, wSmoothingTimesNumW);
-      //      	}
-      //      	System.out.println("Looped " + times + " times.");
-      //      	System.out.println("*****countSum = " + countSum);
-      //      	System.out.println("*****sum = " + sum);
-      //      	System.exit(-1);
-      //      }
-
-      // Calculate the Top-Level features e.g., P(physobject | topic)
-      //      if( includeEntityFeatures ) {
-      //        for( int feat = 0; feat < numFeats; feat++ ) {
-      //          if( features[feat] == 1) {
-      //            double probFeatGivenTopic = (featCountsBySlot[topic].getCount(feat) + featSmoothing) / (featCountsBySlot[topic].totalCount() + featSmoothingTimesNumFeats);
-      //            probs[topic] += Math.log(probFeatGivenTopic);
-      //          }
-      //        }
-      //      }
-
-      // This version appears similar in performance to the above one (no interpolation).
+      // Entity features.
       if( includeEntityFeatures ) {
         for( int feat = 0; feat < numFeats; feat++ ) {
           double sumprobs = 0.0;
@@ -352,27 +321,11 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
         }
       }
 
-      // Multiplies in F probabilities, one for each "entity feature".
-      //      if( includeEntityFeatures ) {
-      //        for( int feat = 0; feat < numFeats; feat++ ) {
-      //          double probFeatGivenTopic;
-      //          double count = featCountsBySlot[topic].getCount(feat);
-      //          if( features[feat] == 1)
-      //            probFeatGivenTopic = (count + featSmoothing) / (topicCounts[topic] + featSmoothingTimesNumFeats);
-      //          else
-      //            probFeatGivenTopic = (topicCounts[topic] - count + featSmoothing) / (topicCounts[topic] + featSmoothingTimesNumFeats);
-      //          probs[topic] += Math.log(1.0/7.0 * probFeatGivenTopic);
-      //        }
-      //      }
-
       // Loop over the mentions for this entity.
       for( int mention = 0; mention < numMentions; mention++ ) {
-        //        String word = this.wordIndex.get(mentionTokens[mention]);
-        //        String dep = this.depIndex.get(mentionDeps[mention]);
-
         //        double probOfDepGivenTopic = Math.log(depCountsBySlot[topic].getCount(mentionDeps[mention]) + depSmoothing) - Math.log(depCountsBySlot[topic].totalCount() + depSmoothingTimesNumDeps);
 
-        // Divide is faster than logarithm (or so the internet seems to think)
+        // Divide is faster than logarithm
         double probOfDepGivenTopic = (depCountsBySlot[topic].getCount(mentionDeps[mention]) + depSmoothing) / (depCountsBySlot[topic].totalCount() + depSmoothingTimesNumDeps);
 
         // Penalty if the nsubj is much higher than the dobj in this topic.
@@ -510,13 +463,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     for (int iter = 0; iter < numIterations; iter++) {
       System.err.println("Iteration: "+iter);
       currentIteration = iter;
-      /*
-      int kidnapTopic = -1;
-      if( iter % 100 == 99 ) {
-        kidnapTopic = findKidnapTopic();
-        System.out.println("Kidnap topic: " + kidnapTopic);
-      }
-       */
 
       if( iter % 15 == 14 && stoppingCriterionLikelihoodMet(iter) )
         break;      
@@ -528,50 +474,10 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
       }
 
       for (int doc = 0; doc < words.length; doc++) {
-        
         for (int entity = 0; entity < words[doc].length; entity++) {
           //          System.out.println("doc=" + doc + "\tentity=" + entity);
 
         	unlabel(doc,entity);
-        	/*
-          int[] mentionWords = words[doc][entity];
-          int[] mentionVerbs = (includeVerbs ? verbs[doc][entity] : null);
-          int[] mentionDeps  = deps[doc][entity];
-          int numMentions = mentionWords.length;
-
-          // Remove old counts of the current z.
-          int oldZ = zs[doc][entity];
-          topicCounts[oldZ]--;
-          topicCountsByDoc[doc][oldZ]--;
-
-          int wordID = mentionWords[0];
-          wCountsBySlot[oldZ].decrementCount(wordID);
-          if (SloppyMath.isCloseTo(wCountsBySlot[oldZ].getCount(wordID), 0.0))
-            wCountsBySlot[oldZ].remove(wordID);
-
-          for (int mention = 0; mention < numMentions; mention++) {
-            int depID = mentionDeps[mention];
-
-            depCountsBySlot[oldZ].decrementCount(depID);
-            if (SloppyMath.isCloseTo(depCountsBySlot[oldZ].getCount(depID), 0.0))
-              depCountsBySlot[oldZ].remove(depID);
-
-            if( includeVerbs ) {
-              int verbID = mentionVerbs[mention];
-              verbCountsBySlot[oldZ].decrementCount(verbID);
-              if (SloppyMath.isCloseTo(verbCountsBySlot[oldZ].getCount(verbID), 0.0))
-                verbCountsBySlot[oldZ].remove(verbID);
-            }
-            //            System.out.println("subtracted " + wordID + " " + wordIndex.get(wordID) + " from z=" + oldZ);
-          }
-
-          if( includeEntityFeatures ) {
-            for( int feat = 0; feat < numFeats; feat++ ) {
-              if( feats[doc][entity][feat] == 1 )
-                featCountsBySlot[oldZ].decrementCount(feat);
-            }
-          }
-*/
         	
           // Sample a new z.
           double[] probs = getTopicDistribution(doc, entity);
@@ -584,32 +490,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
           //          System.out.println();
 
           relabel(doc, entity, newZ);
-          
-          /*
-          // Update counts with new sampled z value.
-          zs[doc][entity] = newZ;
-          topicCounts[newZ]++;
-          topicCountsByDoc[doc][newZ]++;
-
-          wCountsBySlot[newZ].incrementCount(wordID);
-          for (int mention = 0; mention < numMentions; mention++) {
-            //          int wordID = mentionWords[mention];
-            int depID = mentionDeps[mention];
-            depCountsBySlot[newZ].incrementCount(depID);            
-
-            if( includeVerbs ) {
-              int verbID = mentionVerbs[mention];
-              verbCountsBySlot[newZ].incrementCount(verbID);            
-            }
-          }
-
-          if( includeEntityFeatures ) {
-            for( int feat = 0; feat < numFeats; feat++ ) {
-              if( feats[doc][entity][feat] == 1 )
-                featCountsBySlot[newZ].incrementCount(feat);
-            }
-          }
-          */
         }
       }
       
@@ -629,10 +509,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     System.out.println("Loading the best iteration from step " + _bestModelInstance.samplingStep + "...likelihood=" + _bestModelInstance.likelihood);
     loadBestModelInstance(_bestModelInstance);
   }
-
-  //  private int[][] getTopicAssignments() {
-  //    return ArrayUtils.copy(zs);
-  //  }
   
   /**
    * Compute likelihood of the data to determine stopping point.
@@ -816,15 +692,6 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     TextEntity.TYPE[] featTypes = TextEntity.TYPE.values();
 
     double prob = 0.0;
-
-    // Old way.
-    //    for( int feati = 0; feati < featTypes.length; feati++ ) {
-    //      if( feats.contains(featTypes[feati]) ) {
-    //        double probFeatGivenTopic = (featCountsBySlot[topic].getCount(feati) + featSmoothing) / (featCountsBySlot[topic].totalCount() + featSmoothingTimesNumFeats);
-    //        prob += Math.log(probFeatGivenTopic);
-    //      }
-    //    }
-
     for( int feat = 0; feat < featTypes.length; feat++ ) {
       int numOn = 0;
       double sumprobs = 0.0;
@@ -839,6 +706,14 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     return prob;
   }
 
+  /**
+   * ******************************************************************************************************************
+   * ******************************************************************************************************************
+   * Everything below is essentially debugging and overhead such as saving/loading.
+   * ******************************************************************************************************************
+   * ******************************************************************************************************************
+   */
+  
   /**
    * Analysis and Debugging
    * @param wordIndex The index of words to integer IDs.
@@ -1289,146 +1164,7 @@ public class GibbsSamplerEntities implements Sampler, Serializable {
     } catch( Exception ex ) { ex.printStackTrace(); }
     return null;
   }
-
-  /**
-   * Assumes the documents have been given and loaded, ready to go.
-   * Now run the gibbs sampling algorithm to determine values of slot indicator variables Z.
-   * 
-   * However, only so many entities can be mapped to each topic, determined by the global maxEntitiesPerTopic.
-   * This function randomly chooses entities in a random order, and assigns topics in order until each
-   * topic is full.
-   * 
-   * This ultimately does not work. The one topic that serves as the default just ends up being a language model
-   * for the corpus. The other topics only get 2 mentions each, so the majority of mentions are thrown into the
-   * same default topic, thus making a general LM. The specific topics never get to anything interesting because
-   * the mentions that should be in the topic are not always randomly selected and instead have to be put in the
-   * default topic.
-   * 
-   * @param numIterations The number of iterations to run.
-   */
-  public void runSamplerConstrained(int numIterations) {
-    for (int iter = 0; iter < numIterations; iter++) {
-      System.err.println("Iteration: "+iter);
-
-      for (int doc = 0; doc < words.length; doc++) {
-        int numEntities = words[doc].length;
-        ArrayList<Integer> ordered = createOrderedList(numEntities);
-        int[] docTopicCounts = new int[numTopics];
-
-        for (int entity = 0; entity < numEntities; entity++) {
-          // Choose a random entity, don't traverse in order.
-          int rand = random.nextInt(numEntities-entity);
-          int targetEntity = ordered.get(rand);
-          ordered.remove(rand);
-          //            System.out.println("doc=" + doc + "\tentity=" + targetEntity);
-
-          int[] mentionWords = words[doc][targetEntity];
-          int[] mentionDeps  = deps[doc][targetEntity];
-          int numMentions = mentionWords.length;
-
-          // Remove old counts of the current z.
-          int oldZ = zs[doc][targetEntity];
-          topicCounts[oldZ]--;
-
-          for (int mention = 0; mention < numMentions; mention++) {
-            int wordID = mentionWords[mention];
-            int depID = mentionDeps[mention];
-
-            wCountsBySlot[oldZ].decrementCount(wordID);
-            if (SloppyMath.isCloseTo(wCountsBySlot[oldZ].getCount(wordID), 0.0))
-              wCountsBySlot[oldZ].remove(wordID);
-
-            depCountsBySlot[oldZ].decrementCount(depID);
-            if (SloppyMath.isCloseTo(depCountsBySlot[oldZ].getCount(depID), 0.0))
-              depCountsBySlot[oldZ].remove(depID);
-
-            //              System.out.println("subtracted " + wordID + " " + wordIndex.get(wordID) + " from z=" + oldZ);
-          }
-
-          if( includeEntityFeatures ) {
-            for( int feat = 0; feat < numFeats; feat++ ) {
-              if( feats[doc][targetEntity][feat] == 1 )
-                featCountsBySlot[oldZ].decrementCount(feat);
-            }
-          }
-
-          // Sample a new z.
-          double[] probs = getTopicDistribution(doc, targetEntity);
-          int newZ = numTopics-1;
-          if( entity < numTopics*maxEntitiesPerTopic )
-            newZ = sampleFromDistribution(probs, docTopicCounts, maxEntitiesPerTopic);
-          docTopicCounts[newZ]++;
-          //          int newZ = random.nextInt(numTopics);
-
-          // DEBUG
-          //            for( int pp = 0; pp < probs.length; pp++ ) System.out.printf(" %.3f", probs[pp]);
-          //            System.out.print(" oldz=" + oldZ + " newz=" + newZ);
-          //            System.out.println();
-
-          // Update counts with new sampled z value.
-          zs[doc][targetEntity] = newZ;
-          topicCounts[newZ]++;
-
-          for (int mention = 0; mention < numMentions; mention++) {
-            int wordID = mentionWords[mention];
-            int depID = mentionDeps[mention];
-            wCountsBySlot[newZ].incrementCount(wordID);
-            depCountsBySlot[newZ].incrementCount(depID);            
-            //              System.out.println("added " + wordID + " " + wordIndex.get(wordID) + " dep " + depIndex.get(depID) + " to " + newZ);
-          }
-
-          if( includeEntityFeatures ) {
-            for( int feat = 0; feat < numFeats; feat++ ) {
-              if( feats[doc][targetEntity][feat] == 1 )
-                featCountsBySlot[newZ].incrementCount(feat);
-            }
-          }
-        }
-      }
-      printWordDistributionsPerTopic();
-    }
-
-    //    System.out.println("Checking data structures result = " + checkDataStructures());
-  }
-
-
-  private ArrayList<Integer> createOrderedList(int n) {
-    ArrayList<Integer> list = new ArrayList<Integer>(n);
-    for( int ii = 0; ii < n; ii++ )
-      list.add(ii);
-    return list;
-  }
-
-  /**
-   * Samples from the distribution over values 0 through d.length given by d.
-   * Assumes that the distribution sums to 1.0.
-   *
-   * @param dist the distribution to sample from
-   * @return a value from 0 to d.length
-   */
-  public int sampleFromDistribution(final double[] dist, final int[] topicCounts, final int maxPerTopic) {
-    //      System.out.println("topicCounts = " + Arrays.toString(topicCounts));
-    // sample from the uniform [0,1]
-    double r = random.nextDouble();
-    // now compare its value to cumulative values to find what interval it falls in
-    double total = 0;
-    for (int i = 0; i < dist.length - 1; i++) {
-      if (Double.isNaN(dist[i])) {
-        throw new RuntimeException("Can't sample from NaN");
-      }
-      total += dist[i];
-      if (r < total) {
-        // Find the next i that isn't over counted in topicCounts.
-        while( topicCounts[i] >= maxPerTopic ) {
-          i++;
-          if( i >= dist.length ) i = 0;
-        }
-        return i;
-      }
-    }
-    return dist.length - 1; // in case the "double-math" didn't total to exactly 1.0
-  }
-
+  
   /**
    * Assumes the entities are labeled with topics/slots.
    */

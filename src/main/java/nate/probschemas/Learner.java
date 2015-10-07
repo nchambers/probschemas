@@ -350,7 +350,6 @@ public class Learner {
     esampler.initializeModelFromData(docnames, docsEntities);
     //      esampler.runSampler(_sampleSteps/2);
     //      esampler.printWordDistributionsPerTopic();
-    //      esampler.runSamplerConstrained(_sampleSteps/2);
     return esampler;
   }
   
