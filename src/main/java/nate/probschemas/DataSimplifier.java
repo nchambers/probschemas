@@ -52,7 +52,7 @@ public class DataSimplifier {
   private final String _cacheGigaDir = "cachegiga";
   private double _minDepCounts = 10; // number of times a dep must be seen
   private int _minDocCounts = 10;    // number of docs a verb must occur in
-  public boolean debug = true;
+  public boolean debug = false;
 
   public DataSimplifier(int minDepCount, int minDocCount) {
     this();
@@ -133,18 +133,21 @@ public class DataSimplifier {
     	xx++;
     }
 
-    for( List<TextEntity> doc : docsEntities )
-    	for( TextEntity entity : doc ) System.out.println("..> " + entity);
+    if( debug )
+      for( List<TextEntity> doc : docsEntities )
+        for( TextEntity entity : doc ) System.out.println("..> " + entity);
 
     removeLowOccurringMentions(docsEntities);
 
-    for( List<TextEntity> doc : docsEntities )
-    	for( TextEntity entity : doc ) System.out.println("__> " + entity);
+    if( debug )
+      for( List<TextEntity> doc : docsEntities )
+        for( TextEntity entity : doc ) System.out.println("__> " + entity);
 
     removeLowIDFChange(docsEntities, generalIDF, domainIDF);
 
-    for( List<TextEntity> doc : docsEntities )
-    	for( TextEntity entity : doc ) System.out.println("==> " + entity);
+    if( debug )
+      for( List<TextEntity> doc : docsEntities )
+        for( TextEntity entity : doc ) System.out.println("==> " + entity);
 
     return docsEntities;
   }
@@ -235,29 +238,33 @@ public class DataSimplifier {
     // Set the top-level word classes that this entity may belong to.
     setTopLevelAttributes(entities);
 
-    for( TextEntity entity : entities )
-    	System.out.println("--> " + entity);
+    if( debug )
+    	for( TextEntity entity : entities )
+    		System.out.println("--> " + entity);
 
     // Remove mentions that are reporting verbs.
     removeReportingMentions(entities);
     removeCommonMentions(entities);
 
-    for( TextEntity entity : entities )
-    	System.out.println("**> " + entity);
+    if( debug )
+      for( TextEntity entity : entities )
+        System.out.println("**> " + entity);
 
     // Remove entities with one mention that are pronouns.
     removePronounEntities(entities);
 
-    for( TextEntity entity : entities )
-    	System.out.println("!!> " + entity);
+    if( debug )
+      for( TextEntity entity : entities )
+        System.out.println("!!> " + entity);
 
     // Remove entities with one mention that are just numbers (not years).
     removeNumberEntities(entities);
 
     // Remove any entity with only one mention.
     //    removeSingleMentionEntities(entities);
-    for( TextEntity entity : entities )
-    	System.out.println(">>> " + entity);
+    if( debug )
+      for( TextEntity entity : entities )
+        System.out.println(">>> " + entity);
 
 
     return entities;
