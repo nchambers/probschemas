@@ -66,6 +66,9 @@ public class Learner {
   List<String> _testDocsNames;
   ProcessedData _loadedTrainData;
 
+  // Set to true to use GibbsSamplerWorkshop instead of the full model GibbsSamplerEntities
+  boolean _workshop = false;
+  
   boolean _sampleEntityModel = true;
   boolean _doIR              = false;
   boolean _learnAndInfer     = false;
@@ -143,6 +146,7 @@ public class Learner {
     if( params.hasFlag("-testkey")) _testKeyPath      = params.get("-testkey");
     if( params.hasFlag("-train") )   _trainDataDir      = params.get("-train");
     if( params.hasFlag("-skipcache")) _skipCache      = true;
+    if( params.hasFlag("-workshop"))  _workshop       = true;
 
     System.out.println("smoothing: " + _wordSmoothing + "\t" + _depSmoothing + "\t" + _featSmoothing);
     System.out.println("Use Entity Model:\t" + _sampleEntityModel);
@@ -185,6 +189,9 @@ public class Learner {
     System.out.println("Test key:\t" + _testKeyPath);
     System.out.println("Eval easy:\t" + _evaluateOnlyTemplateDocs);
     System.out.println("Eval ignore schemas:\t" + _evaluateIgnoreSchemas);
+    
+    if( _workshop )
+      System.out.println("*************************************\nRunning Workshop Code, not full model!\n****************************\n");
   }
 
   /**
@@ -339,18 +346,26 @@ public class Learner {
   }
 
   public GibbsSamplerEntities createSampler(List<String> docnames, List<List<TextEntity>> docsEntities) {
-    GibbsSamplerEntities esampler = new GibbsSamplerEntities(_numTopics, _numJunkTopics, _numTemplates, _numJunkTemplates);
-    if( _wordSmoothing >= 0.0 ) esampler.wSmoothing = _wordSmoothing;
-    if( _depSmoothing >= 0.0 ) esampler.depSmoothing = _depSmoothing;
-    if( _featSmoothing >= 0.0 ) esampler.featSmoothing = _featSmoothing;
-    if( _verbSmoothing > 0.0 ) { esampler.includeVerbs = true; esampler.verbSmoothing = _verbSmoothing; }
-    esampler.includeEntityFeatures = _includeEntFeats;
-    esampler.constrainInverseDeps = _constrainInverseDeps;
-    esampler.thetasInDoc = _thetasInDoc;
-    esampler.initializeModelFromData(docnames, docsEntities);
-    //      esampler.runSampler(_sampleSteps/2);
-    //      esampler.printWordDistributionsPerTopic();
-    return esampler;
+    GibbsSamplerEntities sampler;
+    if( _workshop ) {
+      sampler = new GibbsSamplerWorkshop(_numTopics, _numJunkTopics, _numTemplates, _numJunkTemplates);
+    }
+    else {
+      sampler = new GibbsSamplerEntities(_numTopics, _numJunkTopics, _numTemplates, _numJunkTemplates);
+    }
+
+    if( _wordSmoothing >= 0.0 ) sampler.wSmoothing = _wordSmoothing;
+    if( _depSmoothing >= 0.0 ) sampler.depSmoothing = _depSmoothing;
+    if( _featSmoothing >= 0.0 ) sampler.featSmoothing = _featSmoothing;
+    if( _verbSmoothing > 0.0 ) { sampler.includeVerbs = true; sampler.verbSmoothing = _verbSmoothing; }
+    sampler.includeEntityFeatures = _includeEntFeats;
+    sampler.constrainInverseDeps = _constrainInverseDeps;
+    sampler.thetasInDoc = _thetasInDoc;
+    sampler.initializeModelFromData(docnames, docsEntities);
+    //      sampler.runSampler(_sampleSteps/2);
+    //      sampler.printWordDistributionsPerTopic();
+
+    return sampler;
   }
   
   /**
@@ -684,7 +699,7 @@ public class Learner {
       System.out.println("Time to learn!");
       //        GibbsSamplerEntities sampler = new GibbsSamplerEntities(_numTopics);
       //        sampler.initializeModelFromData(idocsEntities);
-      Sampler sampler = createSampler(idocsNames, idocsEntities);
+      GibbsSamplerEntities sampler = createSampler(idocsNames, idocsEntities);
       sampler.runSampler(_sampleSteps);
       sampler.printWordDistributionsPerTopic();
 
