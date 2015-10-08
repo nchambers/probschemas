@@ -48,7 +48,9 @@ runInference()
 - Old evaluate method. Uses the learned sampling model (probably saved to disk) and selects most probable entity roles...but not by sampling.
 
 
-TODO Items
+Sample Data
 -------------
+src/main/resources/sailing-docs.txt
 
-**** Need to make text-only data to experiment with! ****
+This is a collection of 75 documents about sailing. 
+Provided as a very small sample dataset for training/testing.
